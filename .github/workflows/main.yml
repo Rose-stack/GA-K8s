@@ -61,7 +61,7 @@ jobs:
         name: Update kube config
         run: |
          mkdir ${HOME}/.kube | tee -a
-         echo ${{ secrets.KUBE_CONFIG }} | base64 --decode > ${HOME}/.kube/config
+         echo "${{ secrets.KUBE_CONFIG }}" | base64 --decode > ${HOME}/.kube/config
          cat ${HOME}/.kube/config
       - # context
         name: context
