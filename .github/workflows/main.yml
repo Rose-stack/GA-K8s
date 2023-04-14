@@ -46,15 +46,6 @@ jobs:
           push: true
           tags: ${{ env.DOCKERHUB_USERNAME }}/clockbox:latest
 
-      - # Install kubectl
-        name: Install kubectl
-        run: |
-          curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
-          curl -LO "https://dl.k8s.io/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl.sha256"
-          echo "$(cat kubectl.sha256)  kubectl" | sha256sum --check
-          sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
-          kubectl version --client
- 
       - # Configure AWS Credentials
         name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v1
@@ -63,21 +54,18 @@ jobs:
           aws-secret-access-key: ${{ env.AWS_SECRET }}
           aws-region: us-west-1
 
-      - # Kube config
-        name: Update kube config
-        run: |
-          sudo mkdir ${HOME}/.kube | tee -a
-          echo  ${{ secrets.KUBE_CONFIG }} | base64 --decode > ${HOME}/.kube/config
-          cat ${HOME}/.kube/config
-      - # context
-        name: context
-        run: kubectl config use-context arn:aws:eks:us-west-1:981576070291:cluster/eks_test  
 
-      - # Deploy to EKS
-        name: Deploy to EKS
-        run: |
-          kubectl apply -f k8s_deployment.yml
+      - name: Deploy to EKS
+        uses: m1g0r/aws/kubectl@master
+        with:
+          args: apply -f ./k8s_deployment
+        env:
+          KUBE_CONFIG_DATA: ${{ secrets.KUBE_CONFIG}}
 
-      - # Verify deployment
-        name: Verify deployment
-        run: kubectl get pods
+
+      - name: Get deployments status
+        uses: m1g0r/aws/kubectl@master
+        with:
+          args: rollout status deployment/nodeapp-deployment -n defaults
+        env:
+          KUBE_CONFIG_DATA: ${{ secrets.KUBE_CONFIG}}
